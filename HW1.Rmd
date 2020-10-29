@@ -1,0 +1,74 @@
+---
+title: "Homework Assignment 1"
+author: "author: Jiyun Bak"
+date: 'Assigned: Oct 24, 2020, Due Sun Nov 01, 2020 11:59PM'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Basic Exploration
+```{r}
+nyc = read.csv("nycflights.csv")
+
+# Delete first column
+nyc$X = NULL
+
+# Factorizing variables 
+nyc$origin = as.factor(nyc$origin)
+nyc$tailnum = as.factor(nyc$tailnum)
+nyc$month = as.factor(nyc$month)
+nyc$dest = as.factor(nyc$dest)
+nyc$carrier = as.factor(nyc$carrier)
+nyc$flight = as.factor(nyc$flight)
+
+
+# How many airlines are there
+length(levels(nyc$carrier))
+
+# How many flights from airline 00
+nyc00 = nrow(nyc[nyc$carrier == "OO",])
+
+# Length of shortest flight from NYC
+min(nyc$air_time, na.rm=TRUE)
+
+# Num of UA flights on Jan 12th 2013
+UAflight = nrow(nyc[nyc$carrier =="UA" & nyc$month == "1" & nyc$day == 12, ])
+
+```
+
+# Arrival Delay
+```{r}
+# Avg arrival delay for all airports in Jan
+janflight = nyc[nyc$month == "1",]
+round(mean(janflight$arr_delay, na.rm=TRUE), 2)
+
+# Med arrival delay for all airports in Jan
+round(median(janflight$arr_delay, na.rm=TRUE), 2)
+
+```
+
+Since the mean is greater than the median, the distribution has a longer tail in the negative direction. Thus, more flights arrive earlier than expected, however, when flights are delayed the delay is longer. 
+
+
+# Airline Performance
+```{r}
+# Avg arrival delays by airline
+delay = tapply(nyc$arr_delay, nyc$carrier, mean, na.rm=TRUE)
+
+# Barplot
+barplot(delay)
+
+# highest average arrival delay
+names(delay[delay==max(delay)])
+
+# smallest average arrival delay
+names(delay[delay==min(delay)])
+
+```
+
+
