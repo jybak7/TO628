@@ -1,10 +1,14 @@
 ---
 title: "Homework Assignment 1"
-author: "author: Jiyun Bak"
+author: "Author: Jiyun Bak"
 date: 'Assigned: Oct 24, 2020, Due Sun Nov 01, 2020 11:59PM'
 output:
-  html_document: default
-  pdf_document: default
+  html_document:
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+  pdf_document:
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -26,49 +30,188 @@ nyc$dest = as.factor(nyc$dest)
 nyc$carrier = as.factor(nyc$carrier)
 nyc$flight = as.factor(nyc$flight)
 
+```
 
-# How many airlines are there
+### How many airlines are there?
+```{r}
 length(levels(nyc$carrier))
+```
 
-# How many flights from airline 00
+### How many flights there were by the airline with code OO?
+```{r}
 nyc00 = nrow(nyc[nyc$carrier == "OO",])
+```
 
-# Length of shortest flight from NYC
+### How long is the shortest flight out of any NYC airport?
+```{r}
 min(nyc$air_time, na.rm=TRUE)
+```
 
-# Num of UA flights on Jan 12th 2013
-UAflight = nrow(nyc[nyc$carrier =="UA" & nyc$month == "1" & nyc$day == 12, ])
+### How many flights where there by United Airlines (code: UA) on Jan 12th 2013?
+```{r}
+UA <- nyc[nyc$carrier == "UA" & nyc$year==2013 & nyc$month==1 & nyc$day==12, ] 
+nrow(UA)
 
 ```
 
 # Arrival Delay
+
+### What was the average arrival delay for all airports and all airlines combined in Jan 2013?
 ```{r}
-# Avg arrival delay for all airports in Jan
 janflight = nyc[nyc$month == "1",]
 round(mean(janflight$arr_delay, na.rm=TRUE), 2)
+```
 
-# Med arrival delay for all airports in Jan
+### What was the median arrival delay for all airports and all airlines combined in Jan 2013?
+```{r}
 round(median(janflight$arr_delay, na.rm=TRUE), 2)
-
 ```
 
 Since the mean is greater than the median, the distribution has a longer tail in the negative direction. Thus, more flights arrive earlier than expected, however, when flights are delayed the delay is longer. 
 
 
 # Airline Performance
+
+### Calculate average arrival delays by airline
 ```{r}
-# Avg arrival delays by airline
 delay = tapply(nyc$arr_delay, nyc$carrier, mean, na.rm=TRUE)
+```
 
-# Barplot
-barplot(delay)
+### Draw a Bar Plot of Average Arrival Delays for all the Airlines
+```{r}
+barplot(delay, main="Average Arrival Delays for all the airlines",
+        xlab = "Airlines", ylab = "Avg arr delays")
+```
 
-# highest average arrival delay
-names(delay[delay==max(delay)])
+### Which airline has the highest average arrival delay? Which airline has the smallest average arrival delay? Are there airlines that actually have negative average delay?
+```{r}
+# Highest average arrival delay
+high <- names(delay[delay==max(delay)])
 
-# smallest average arrival delay
-names(delay[delay==min(delay)])
+# Smallest average arrival delay
+small <- names(delay[delay==min(delay)])
 
+# Negative average delay
+neg <- names(delay[delay[ ] < 0 ])
+
+```
+Highest average arrival delay airline : `r high`
+
+Smallest average arrival delay airline : `r small`
+
+Negative average arrival delay airline : `r neg`
+
+
+# Air Gain 
+```{r}
+nyc$airgain <- nyc$dep_delay - nyc$arr_delay
+```
+
+### a) Explore airgain data 
+```{r}
+hist(nyc$airgain)
+
+bycarrier <- tapply(nyc$airgain, nyc$carrier, mean, na.rm=TRUE)
+barplot(bycarrier, main="Average airgain by the airlines",
+        xlab = "Airline", ylab="Avg airgain")
+
+byorigin <- tapply(nyc$airgain, nyc$origin, mean, na.rm=TRUE)
+barplot(byorigin, main="Average airgain by Origin",
+        xlab = "Origin", ylab="Avg airgain")
+
+aggregate(airgain~origin+carrier, data=nyc, mean)
 ```
 
 
+### b) Answer the questions - 
+### i) do airlines actually gain any time when in air on average?
+```{r}
+carair <- aggregate(airgain~carrier, data=nyc, mean)
+carair[carair$airgain < 0, ]
+```
+Not really. Only F9, FL, and MQ are shortening their time through flying.
+
+
+### ii) Calculate average airgain for different airlines - which airlines do a better job, which do a worse job? 
+```{r}
+carair
+#Max
+carair$carrier[which.max(carair$airgain)]
+#Min
+carair$carrier[which.min(carair$airgain)]
+```
+F9 was doing a better job comparing to other airlines by shortening the average delay by 1.72. AS was doing a worse job comparing to other airlines by increasing the average delay by 15.76
+
+
+# Merging Data Frames 
+```{r}
+library(data.table)
+plane <- read.csv("planes.csv")
+
+plane$X = NULL
+plane$tailnum <- as.factor(plane$tailnum)
+plane$year <- as.factor(plane$year)
+plane$manufacturer <- as.factor(plane$manufacturer)
+plane$model <- as.factor(plane$model)
+plane$engine <- as.factor(plane$engine)
+plane <- as.data.frame(plane)
+```
+
+### b) Merge the flights data and the planes data using the merge command. 
+
+```{r}
+
+m_data <- merge(nyc, plane, by = "tailnum")
+
+View(m_data)
+```
+
+### c-1. Which manufacturers do make the largest&smallest average airgain plane? 
+```{r}
+byman <- tapply(m_data$airgain, m_data$manufacturer, mean, na.rm=TRUE)
+# Highest average arrival delay
+max_man <- names(byman[byman==max(byman)])
+min_man <- names(byman[byman==min(byman)])
+```
+The largest average airgain manufacturer: `r max_man`
+
+The smallest average airgain manufacturer: `r min_man`
+
+
+
+### c-2. Which models do fly the average longest & shortest distance? 
+```{r}
+dist_model <- tapply(m_data$distance, m_data$model, mean, na.rm=TRUE)
+longdist_m <- names(dist_model[dist_model==max(dist_model)])
+shortdist_m <- names(dist_model[dist_model==min(dist_model)])
+longdist <- dist_model[dist_model==max(dist_model)]
+shortdist <- dist_model[dist_model==min(dist_model)]
+longdist
+shortdist
+```
+`r longdist_m` flies the longest distance as of `r longdist`, and `r shortdist_m` flies the shortest distance as of `r shortdist`.
+
+
+### c-3. What are the top 5 most frequent destination airports flying from JFK airport?  
+```{r}
+m_data$cnt = 1
+ori_dest <-as.data.frame(aggregate(cnt~origin+dest, data=m_data, sum))
+jfk <- ori_dest[ori_dest$origin=="JFK", ]
+jfk <- jfk[order(-jfk$cnt),]
+jfk[1:5, 2:3]
+```
+
+### c-4. Which month does have the largest number of flights? 
+```{r}
+mon<-tapply(m_data$cnt, m_data$month, sum, na.rm=TRUE)
+max_month <- names(mon[mon==max(mon)])
+max_month
+```
+
+
+### c-5. Is there any relationship between the airgain and the number of engines? 
+```{r}
+tapply(m_data$airgain, m_data$engines, mean, na.rm=TRUE)
+```
+It seems that there is a linear relationship between the airgain and the number of engines until the plane has 4 engines. 
+As the number of engines increases, the average airgain also increases. 
